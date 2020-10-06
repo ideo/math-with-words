@@ -12,7 +12,7 @@ enableCORS=false\n\
 port = $PORT\n\
 " > ~/.streamlit/config.toml
 
-mkdir ~/.aws
+mkdir -p ~/.aws/
 
 echo "\
 [default]\n\
