@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from num2words import num2words
 
+from aws import load_pickled_dataframe
 from nlp_pipeline import NLP, load_spacy, nlp_pipeline, ngram_demo, retrieve_topic_keywords
 
 
@@ -31,9 +32,10 @@ We'll keep the Japanese along throughout so you can do the sanity check for us. 
 """
 st.write(msg)
 
-filepath = "../data/attitudes_survey/attitudes_survey_translation_9_25.csv"
-df = pd.read_csv(filepath)
-df.drop(columns=["Unnamed: 0"], inplace=True)
+# filepath = "../data/attitudes_survey/attitudes_survey_translation_9_25.csv"
+# df = pd.read_csv(csv_file)
+# df.drop(columns=["Unnamed: 0"], inplace=True)
+df = load_pickled_dataframe()
 st.dataframe(df)
 
 

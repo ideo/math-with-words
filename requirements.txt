@@ -3,3 +3,4 @@ spacy
 streamlit
 sklearn
 num2words
+boto3
