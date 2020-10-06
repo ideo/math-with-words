@@ -12,6 +12,8 @@ enableCORS=false\n\
 port = $PORT\n\
 " > ~/.streamlit/config.toml
 
+mkdir ~/.aws
+
 echo "\
 [default]\n\
 aws_access_key_id = \"AWS_KEY\"\n\
