@@ -6,7 +6,8 @@ from sklearn.decomposition import LatentDirichletAllocation
 from num2words import num2words
 
 from aws import load_pickled_dataframe, load_pickled_object
-from nlp_pipeline import NLP, load_spacy, nlp_pipeline, ngram_demo, retrieve_topic_keywords
+# from nlp_pipeline import NLP, load_spacy, nlp_pipeline, ngram_demo, retrieve_topic_keywords
+from nlp_pipeline import ngram_demo, retrieve_topic_keywords
 
 
 st.title("Hello, Koko!")
