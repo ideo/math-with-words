@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from num2words import num2words
 
-from aws import load_pickled_dataframe
+from aws import load_pickled_dataframe, load_pickled_object
 from nlp_pipeline import NLP, load_spacy, nlp_pipeline, ngram_demo, retrieve_topic_keywords
 
 
@@ -97,7 +97,11 @@ free_response_questions = {
     }
 chosen_col = st.radio(label="Free Response Question to Analyze", options=list(free_response_questions.values()))
 
-analysis_df = df[[chosen_col]].rename(columns={chosen_col: "raw"})
+reverse_col_to_key = {v:k for k,v in free_response_questions.items()}
+analysis_dfs = load_pickled_object("analysis_dfs.pkl")
+analysis_df = analysis_dfs[reverse_col_to_key[chosen_col]]
+
+# analysis_df = df[[chosen_col]].rename(columns={chosen_col: "raw"})
 
 clicked = st.button("Process Text")
 if clicked:

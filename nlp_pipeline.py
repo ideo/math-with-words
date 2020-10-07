@@ -13,7 +13,6 @@ def load_spacy():
         nlp.vocab[wrd].is_stop = False
 
     return nlp
-NLP = load_spacy()
 
 
 def nlp_pipeline(df, nlp):
@@ -90,4 +89,24 @@ def retrieve_topic_keywords(model, feature_names, n_top_words):
 
 
 if __name__ == "__main__":
-    print(NLP._path)
+    # Pickle processed text so we don't need spacy on Heroku
+    import pickle
+    from aws import load_pickled_dataframe
+
+    nlp = load_spacy()
+    df = load_pickled_dataframe()
+    frqs = {
+    "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
+    "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
+    }
+
+    analysis_df = {
+        "holding_back": df[[frqs["holding_back"]]].rename(columns={frqs["holding_back"]: "raw"}),
+        "habits": df[[frqs["habits"]]].rename(columns={frqs["habits"]: "raw"})
+    }
+
+    for col in analysis_df:
+        analysis_df[col] = nlp_pipeline(analysis_df[col], nlp)
+
+    pickle.dump(analysis_df, open("analysis_dfs.pkl", "wb"))
+    
