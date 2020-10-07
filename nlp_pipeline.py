@@ -87,3 +87,7 @@ def retrieve_topic_keywords(model, feature_names, n_top_words):
         # print(message)
         topic_keywords[topic_idx] = [feature_names[i] for i in topic.argsort()[:-n_top_words - 1:-1]]
     return topic_keywords
+
+
+if __name__ == "__main__":
+    print(NLP._path)
