@@ -92,6 +92,14 @@ called "Tokenization". We reduce the text to a list a valid "tokens" we think ar
 st.write(msg)
 
 
+temp_msg = """
+I wanted to let you play with this part, but the [model](https://spacy.io/) that does the tokenization 
+is like 50 gigs and way to big to host on heroku for no money. There's more AWS stuff I'll need to 
+learn to get that working. So for now, here are the results of the process I ran.
+"""
+st.write(temp_msg)
+
+
 free_response_questions = {
     "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
     "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
