@@ -1,7 +1,7 @@
 from copy import copy
 from string import punctuation
 
-# import spacy  
+import spacy  
 
 
 def load_spacy():
@@ -90,23 +90,28 @@ def retrieve_topic_keywords(model, feature_names, n_top_words):
 
 if __name__ == "__main__":
     # Pickle processed text so we don't need spacy on Heroku
-    import pickle
-    from aws import load_pickled_dataframe
+    # import pickle
+    # from spacy.lang.en.stop_words import STOP_WORDS
+    pass
+    
 
-    nlp = load_spacy()
-    df = load_pickled_dataframe()
-    frqs = {
-    "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
-    "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
-    }
 
-    analysis_df = {
-        "holding_back": df[[frqs["holding_back"]]].rename(columns={frqs["holding_back"]: "raw"}),
-        "habits": df[[frqs["habits"]]].rename(columns={frqs["habits"]: "raw"})
-    }
+    # from aws import load_pickled_dataframe
 
-    for col in analysis_df:
-        analysis_df[col] = nlp_pipeline(analysis_df[col], nlp)
+    # nlp = load_spacy()
+    # df = load_pickled_dataframe()
+    # frqs = {
+    # "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
+    # "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
+    # }
 
-    pickle.dump(analysis_df, open("analysis_dfs.pkl", "wb"))
+    # analysis_df = {
+    #     "holding_back": df[[frqs["holding_back"]]].rename(columns={frqs["holding_back"]: "raw"}),
+    #     "habits": df[[frqs["habits"]]].rename(columns={frqs["habits"]: "raw"})
+    # }
+
+    # for col in analysis_df:
+    #     analysis_df[col] = nlp_pipeline(analysis_df[col], nlp)
+
+    # pickle.dump(analysis_df, open("analysis_dfs.pkl", "wb"))
     

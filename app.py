@@ -59,25 +59,25 @@ So the list is not exact. Feel free to modify it below.
 """
 st.write(msg)
 
-is_stop = st.text_input("Is this word a stop word?").lower()
-if is_stop != "":
-    if NLP.vocab[is_stop].is_stop:
-        st.write(f"Yes, `{is_stop}` is currently a stop word.")
-    elif ~NLP.vocab[is_stop].is_stop:
-        st.write(f"No, `{is_stop}` is not currently a stop word.")
-    is_stop = ""
+# is_stop = st.text_input("Is this word a stop word?").lower()
+# if is_stop != "":
+#     if NLP.vocab[is_stop].is_stop:
+#         st.write(f"Yes, `{is_stop}` is currently a stop word.")
+#     elif ~NLP.vocab[is_stop].is_stop:
+#         st.write(f"No, `{is_stop}` is not currently a stop word.")
+#     is_stop = ""
 
-rm_word = st.text_input("Remove Stop Word").lower()
-if rm_word != "":
-    NLP.vocab[rm_word].is_stop = False
-    st.write(f"Removed {rm_word} from list.")
-    rm_word = ""
+# rm_word = st.text_input("Remove Stop Word").lower()
+# if rm_word != "":
+#     NLP.vocab[rm_word].is_stop = False
+#     st.write(f"Removed {rm_word} from list.")
+#     rm_word = ""
 
-add_word = st.text_input("Add Stop Word").lower()
-if add_word != "":
-    NLP.vocab[add_word].is_stop = True
-    st.write(f"Added {add_word} from list.")
-    add_word = ""
+# add_word = st.text_input("Add Stop Word").lower()
+# if add_word != "":
+#     NLP.vocab[add_word].is_stop = True
+#     st.write(f"Added {add_word} from list.")
+#     add_word = ""
 
 
 st.subheader("Lemmatization")
@@ -104,10 +104,11 @@ analysis_df = analysis_dfs[reverse_col_to_key[chosen_col]]
 
 # analysis_df = df[[chosen_col]].rename(columns={chosen_col: "raw"})
 
-clicked = st.button("Process Text")
-if clicked:
-    analysis_df = nlp_pipeline(analysis_df, NLP)
-    st.dataframe(analysis_df[["raw", "processed"]], width=700)
+# clicked = st.button("Process Text")
+# if clicked:
+#     analysis_df = nlp_pipeline(analysis_df, NLP)
+#     st.dataframe(analysis_df[["raw", "processed"]], width=700)
+st.dataframe(analysis_df[["raw", "processed"]], width=700)
 
 
 st.header("Step 3: Vectorization")
