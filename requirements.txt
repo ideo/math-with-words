@@ -1,5 +1,4 @@
 pandas
-spacy
 streamlit
 sklearn
 num2words
