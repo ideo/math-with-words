@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from spacy.lang.en.stop_words import STOP_WORDS
+# from spacy.lang.en.stop_words import STOP_WORDS
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from num2words import num2words
