@@ -18,5 +18,5 @@ echo "\
 [default]\n\
 aws_access_key_id = \"$AWS_KEY\"\n\
 aws_secret_access_key = \"$AWS_SECRET\"\n\
-region=\"$AWS_REGION\"\n\
+region=$AWS_REGION\n\
 " > ~/.aws/credentials
