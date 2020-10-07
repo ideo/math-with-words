@@ -1,7 +1,7 @@
 from copy import copy
 from string import punctuation
 
-import spacy  
+# import spacy  
 
 
 def load_spacy():
