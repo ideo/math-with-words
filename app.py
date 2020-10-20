@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pandas as pd
 import streamlit as st
 # from spacy.lang.en.stop_words import STOP_WORDS
@@ -8,6 +10,10 @@ from num2words import num2words
 from aws import load_pickled_dataframe, load_pickled_object
 # from nlp_pipeline import NLP, load_spacy, nlp_pipeline, ngram_demo, retrieve_topic_keywords
 from nlp_pipeline import ngram_demo, retrieve_topic_keywords
+
+
+def rec_dd():
+    return defaultdict(rec_dd)
 
 
 st.title("Hello, Koko!")
@@ -33,12 +39,9 @@ We'll keep the Japanese along throughout so you can do the sanity check for us. 
 """
 st.write(msg)
 
-# filepath = "../data/attitudes_survey/attitudes_survey_translation_9_25.csv"
-# df = pd.read_csv(csv_file)
-# df.drop(columns=["Unnamed: 0"], inplace=True)
-df = load_pickled_dataframe()
-st.dataframe(df)
 
+df = load_pickled_dataframe("attitudes_survey_translation_9_25.pkl")
+st.dataframe(df)
 
 st.header("Step 2: Tokenization")
 msg = """
@@ -55,7 +58,8 @@ they will be counted most often and our topics will be dominated by meaningless 
 The library I'm using includes a helpful stop words list. But I'm going to modify it a bit. It includes the word 
 `out` and I noticed that after removing stop words a response, "I am out of money", was turned into, "I am money".
 Slightly different meaning. I've also chosen to remove negative words, like `no`, `not` and `none` from the list. 
-So the list is not exact. Feel free to modify it below.
+So the list is not exact. ~~Feel free to modify it below.~~ One day if we meet in person I can show you the stop words 
+list and we can edit it together.
 """
 st.write(msg)
 
@@ -104,19 +108,15 @@ free_response_questions = {
     "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
     "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
     }
-chosen_col = st.radio(label="Free Response Question to Analyze", options=list(free_response_questions.values()))
-
+chosen_question = st.radio(label="Free Response Question to Analyze", options=list(free_response_questions.values()))
 reverse_col_to_key = {v:k for k,v in free_response_questions.items()}
+question = reverse_col_to_key[chosen_question]
+
 analysis_dfs = load_pickled_object("analysis_dfs.pkl")
-analysis_df = analysis_dfs[reverse_col_to_key[chosen_col]]
+analysis_df = analysis_dfs[question]
 
-# analysis_df = df[[chosen_col]].rename(columns={chosen_col: "raw"})
-
-# clicked = st.button("Process Text")
-# if clicked:
-#     analysis_df = nlp_pipeline(analysis_df, NLP)
-#     st.dataframe(analysis_df[["raw", "processed"]], width=700)
-st.dataframe(analysis_df[["raw", "processed"]], width=700)
+st.write("First 10 Responses")
+st.table(analysis_df[["raw", "processed"]].head(10))#.set_index("original_japanese"))
 
 
 st.header("Step 3: Vectorization")
@@ -130,34 +130,31 @@ st.subheader("What to Count: N-Grams")
 msg = """
 We can choose to either count each word individually, or we can count word pairings or word triplets. 
 This can be useful, say, if we think it's more important to count the phrase `clean energy` 
-that `clean` and `energy` separately. Play with the options below to see how they change the 
+than counting `clean` and `energy` separately. Play with the options below to see how they change the 
 different tokens that will be counted by our vectorizer.
 """
 st.write(msg)
 
-ngrams_sel = st.radio(label="We should count:", options=["unigrams", "bigrams", "trigrams"], index=1)
+ngrams_sel = st.radio(label="We should count:", options=["unigrams", "bigrams"], index=0)
 
-test_sentence = "Your cat is very fluffy."
+test_sentence = "Your cat is so fluffy I could die!"
 st.write(f"Free Text: `{test_sentence}`")
 
 if ngrams_sel == "unigrams":
     ngram_range = (1, 1)
     ngrams_demo_tokens = ngram_demo(test_sentence, 1)
-elif ngrams_sel == "bigrams":
+else:
     ngram_range = (1, 2)
     ngrams_demo_tokens = ngram_demo(test_sentence, 2)
-else:
-    ngram_range = (1, 3)
-    ngrams_demo_tokens = ngram_demo(test_sentence, 3)
 
 st.write(f"N-Gram Tokens: `{'`, `'.join(ngrams_demo_tokens)}`")  
 
 
 st.subheader("How to Count: Vectorizer")
 msg = """
-Next, we count each word to form a vector. There are two approaches here. The first approach 
-is to simply count how many times each word appears in the response. The second approach is to first 
-count how many times a word appears in a response, and then divide that count by how many times the word 
+Next, we count the words these n-gram tokens. There are two approaches here. The first approach 
+is to simply count how many times each token appears in the response. The second approach is to first 
+count how many times a token appears in a response, and then divide that count by how many times the token 
 appears in _all_ responses. This approach is called _Term Frequency-Inverse Document Frequency (TFIDF)_.
 
 TFIDF "squishes" common words and highlights rare words. For example, if a response mentions the word 
@@ -168,57 +165,121 @@ only a few others do, than perhaps it's something we should notice.
 TFIDF is useful when you're expecting to see a variety of topics in the collection. Simply counting 
 is useful when you're expecting everyone to be writing about the same topic. I'm not sure which to expect 
 here, so we can try both.
-
-The vector we create will be as long as the number of unique words that appear in all of the survey responses. 
-For each response, we'll fill in each word's count in the spot in the vector corresponding to that word. Since 
-the responses aren't terribly long, and there's a lot of words overall, the vectors will be mostly filled with zeros.
 """
 st.write(msg)
 
+prepared_matrices = load_pickled_object("prepared_matrices.pkl")
 vectorizer_choice = st.radio(label="Vectorizer to Use:", options=["Count Vectorizer", "TFIDF Vectorizer"])
 
-if vectorizer_choice == "Count Vectorizer":
-    vectorizer = CountVectorizer(ngram_range=ngram_range)
-else:
-    vectorizer = TfidfVectorizer(ngram_range=ngram_range)
+vectorizer = prepared_matrices[question][vectorizer_choice][ngram_range]["vectorizer"]
+X = prepared_matrices[question][vectorizer_choice][ngram_range]["X"]
+
+sum_words = X.sum(axis=0)
+words_freq = [(word, sum_words[0, idx]) for word, idx in vectorizer.vocabulary_.items()]
+words_freq = sorted(words_freq, key = lambda x: x[1], reverse=True)
+
+st.write("Top 20 Most Frequent Words among All Responses:")
+st.write(f"`{'`, `'.join([t[0] for t in words_freq[:20]])}`")
 
 
-# If we skip to the bottom, this section won't have run
-if "processed" not in analysis_df.columns:
-    analysis_df = nlp_pipeline(analysis_df, NLP)
+st.header("Step 4: Latent Dirichlet Allocation")
+msg = f"""
+Latent Dirichlet Allocation (LDA) is a form of dimensionality reduction. Without getting too much into the details, 
+dimensionality reduction is when we mathematically try to cut out the noise and reduce a dataset to just the 
+values that provide meaning. It is a form of unsupervised machine learning, called "unsupervised" because 
+we do not have the "correct" answers by which we can judge how well it did.
 
-X = vectorizer.fit_transform(analysis_df.processed)
+Here, we first specify how many topics we'd like the algorithm to search for. It then calculates that many 
+groupings of words that more often appear together than appear with words from other groupings. 
 
-
-st.header("Step 4: Dimensionality Reduction")
-msg = """
-Now we do some linear algebra!
+Visually, imagine you were one of those psycopaths from the movies that had a room full of pictures and string 
+tacked up on your walls. But now imagine that at one end of the room you had all the responses to the survey, 
+at the other end you had every word that appears, and then you tacked up string from each response to each word it 
+contained. You can image thick, tangled braids forming as lots of words point to the same responses. LDA is saying, 
+"Q told me there's five topics!" and then grabbing the five thickests chords of string and posting your discovery on 
+[Reddit](https://www.theatlantic.com/technology/archive/2020/09/reddit-qanon-ban-evasion-policy-moderation-facebook/616442/). 
+We would need a lot of string though, because our {X.shape[0]} wonderful respondents wrote {X.shape[1]} different words!
 """
 st.write(msg)
+
+frequencies = X.sum(axis=0)
+word_freq = [(word, idx, frequencies[:,idx][0,0]) for word, idx in vectorizer.vocabulary_.items()]
+word_freq = sorted(word_freq, key=lambda w: w[2], reverse=True)
+
+msg = """
+We would need a lot of string
+"""
+
 
 n_components = st.slider(label="No. Topics", min_value=1, max_value=20, value=5)
-lda = LatentDirichletAllocation(n_components=n_components, random_state=42)
+
+lda = LatentDirichletAllocation(n_components=n_components, random_state=42)    
 x = lda.fit_transform(X)
 topic_keywords = retrieve_topic_keywords(lda, vectorizer.get_feature_names(), 10)
-
-st.subheader("Model Summary")
-msg = f"""
-* Survey Question:\t**{chosen_col}**
-* N-Gram Range:\t**{ngrams_sel.title()}**
-* Vectorizier:\t**{vectorizer_choice}**
-* No. Topics:\t**{num2words(n_components).title()}**
-"""
-st.write(msg)
 
 st.subheader("Topic Keywords")
 for ii in topic_keywords:
     st.write(f"Topic {num2words(ii+1).title()}:\t`{'`, `'.join(topic_keywords[ii])}`")
 
 
+st.header("Sandbox")
+st.write("Here are all the options so you can play with making topics!")
+st.subheader("Model Summary")
+
+sandbox_question = st.radio(label="Free Response Question to Analyze", options=list(free_response_questions.values()), key="sandbox_question")
+sandbox_question = reverse_col_to_key[sandbox_question]
+sandbox_vect_choice = st.radio(label="Vectorizer to Use:", options=["Count Vectorizer", "TFIDF Vectorizer"], key="sandbox_vect_choice")
+sandbox_ngrams_sel = st.radio(label="We should count:", options=["unigrams", "bigrams"], index=0, key="sandbox_ngrams_sel")
+sandbox_components = st.slider(label="No. Topics", min_value=1, max_value=20, value=5, key="sanbox_components")
+
+if sandbox_ngrams_sel == "unigrams":
+    sandbox_ngram = (1, 1)
+else:
+    sandbox_ngram = (1, 2)
+
+
+sand_vectorizer = prepared_matrices[sandbox_question][sandbox_vect_choice][sandbox_ngram]["vectorizer"]
+X_sand = prepared_matrices[sandbox_question][sandbox_vect_choice][sandbox_ngram]["X"]
+sandbox_model = LatentDirichletAllocation(n_components=sandbox_components, random_state=42)
+x_sand = sandbox_model.fit_transform(X_sand)
+sandbox_keywords = topic_keywords = retrieve_topic_keywords(sandbox_model, sand_vectorizer.get_feature_names(), 10)
+
+for ii in sandbox_keywords:
+    st.write(f"Topic {num2words(ii+1).title()}:\t`{'`, `'.join(sandbox_keywords[ii])}`")
+
+
 st.header("Step 5: Assigning Responses to Topics")
 msg = """
+
+
 Now that we've generated topics, we'll be able to assign each response to whichever topic best describes it.
 """
 st.write(msg)
 
 st.subheader("Coming Soon!!")
+
+
+if __name__ == "__main__":
+    pass
+    # import pickle
+
+    # prepared_matrices = rec_dd()
+    # print(prepared_matrices)
+
+    # for question in free_response_questions:
+    #     print(question)
+    #     for vectorizer_choice in ["Count Vectorizer", "TFIDF Vectorizer"]:
+    #         print(vectorizer_choice)
+    #         for ngram_range in [(1, 1), (1, 2), (1, 3)]:
+    #             print(ngram_range)
+
+    #             if vectorizer_choice == "Count Vectorizer":
+    #                 vectorizer = CountVectorizer(ngram_range=ngram_range)
+    #             else:
+    #                 vectorizer = TfidfVectorizer(ngram_range=ngram_range)
+
+    #             X = vectorizer.fit_transform(analysis_dfs[question].processed)
+    #             prepared_matrices[question][vectorizer_choice][ngram_range]["vectorizer"] = vectorizer
+    #             prepared_matrices[question][vectorizer_choice][ngram_range]["X"] = X
+
+    # pickle.dump(prepared_matrices, open("prepared_matrices.pkl", "wb"))
