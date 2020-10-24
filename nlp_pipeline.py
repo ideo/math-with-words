@@ -32,7 +32,7 @@ def clean(raw_column):
     # Lemmatize
 
 def tokenize(doc, nlp):
-    doc = remove_stop_words(doc, nlp)
+    # doc = remove_stop_words(doc, nlp) # going to remove stop words with sklearn
     doc = lemmatize(doc, nlp)
     return doc
 
@@ -90,28 +90,29 @@ def retrieve_topic_keywords(model, feature_names, n_top_words):
 
 if __name__ == "__main__":
     # Pickle processed text so we don't need spacy on Heroku
-    # import pickle
+    
     # from spacy.lang.en.stop_words import STOP_WORDS
     pass
     
+    
+    import pickle
+    import spacy
+    from aws import load_pickled_dataframe
 
+    nlp = load_spacy()
+    df = load_pickled_dataframe("attitudes_survey_translation_9_25.pkl")
+    frqs = {
+    "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
+    "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
+    }
 
-    # from aws import load_pickled_dataframe
+    analysis_df = {
+        "holding_back": df[[frqs["holding_back"]]].rename(columns={frqs["holding_back"]: "raw"}),
+        "habits": df[[frqs["habits"]]].rename(columns={frqs["habits"]: "raw"})
+    }
 
-    # nlp = load_spacy()
-    # df = load_pickled_dataframe()
-    # frqs = {
-    # "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
-    # "habits": "Are there any actions or habits that you have devised that are unusual for those around you that lead to eco/environmental issues?",
-    # }
+    for col in analysis_df:
+        analysis_df[col] = nlp_pipeline(analysis_df[col], nlp)
 
-    # analysis_df = {
-    #     "holding_back": df[[frqs["holding_back"]]].rename(columns={frqs["holding_back"]: "raw"}),
-    #     "habits": df[[frqs["habits"]]].rename(columns={frqs["habits"]: "raw"})
-    # }
-
-    # for col in analysis_df:
-    #     analysis_df[col] = nlp_pipeline(analysis_df[col], nlp)
-
-    # pickle.dump(analysis_df, open("analysis_dfs.pkl", "wb"))
+    pickle.dump(analysis_df, open("analysis_dfs.pkl", "wb"))
     

@@ -1,9 +1,11 @@
+from copy import copy
 from collections import defaultdict
 
 import pandas as pd
 import streamlit as st
 # from spacy.lang.en.stop_words import STOP_WORDS
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+# from sklearn.feature_extraction import text
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, ENGLISH_STOP_WORDS
 from sklearn.decomposition import LatentDirichletAllocation
 from num2words import num2words
 
@@ -16,93 +18,50 @@ def rec_dd():
     return defaultdict(rec_dd)
 
 
-st.title("Hello, Koko!")
+st.title("Project Enlighten Survey Analysis")
+st.header("An Introduction to Topic Modeling")
 opening_msg = """
-I made this so we could explore the survey results together! Your question for me was, 
-"what's the typical response?". Here's how we'll go about answering that. First, we'll 
-do some topic modeling, to see what are the major themes people are talking about. 
-Then, we'll assign each response to the topic or topics that best describes it. From 
-there, we can see how many people are talking about what.
+Hi Koko! I made this so we could explore the survey results together. Your question 
+for me regarding the free response quesions was, *"What is the typical response?"* Here's 
+how we'll try to answer that:  
+    
+1. First, we'll clean up the text to make it easier to analyze.  
+2. Next, we'll count all the words in each response.  
+3. Then, we'll group words that commonly appear together. We'll call these groups topics.  
+4. Lastly, we'll count how many responses belong to each topic. If one outnumbers all the 
+others, there's our most typical response!
 
-The tricky thing about topic modeling is that there is no mathematical way to know if 
-you've found the "correct" number of topics. We simply need to read through the results 
-and decide for ourselves if they make sense. So hopefully this walkthrough serves as a 
-way for us to do that together! Welcome to Topic Modeling 101!
+You'll see along the way that when doing math with words there often isn't a mathematical 
+way to say we're doing things the best way, and we need to assess for ourselves how useful 
+or reasonable the results are. We'll also see that each changes to each step can affect 
+the outcome, so we'll probably take an iterative approach to finding these topics. Let's 
+get to it!
 """
 st.write(opening_msg)
 
 # Translation
 st.header("Step 1: Translation")
 msg = """
-How's it looking? Nothing I can really do here so hope it's good! 
-We'll keep the Japanese along throughout so you can do the sanity check for us. All hail DeepL.
+ごめんなさい、でも日本語わからない。I can't do NLP in a language I don't know. So how does the 
+translation look? Nothing I can really do here. All hail DeepL.
 """
 st.write(msg)
-
 
 df = load_pickled_dataframe("attitudes_survey_translation_9_25.pkl")
 st.dataframe(df)
+st.write(f"Summary: {df.shape[0]} responses to {df.shape[1]-1} questions.")
 
-st.header("Step 2: Tokenization")
+st.header("Step 2: Lemmatization")
 msg = """
-Topic Modeling is basically counting words. So the first step here is to modify 
-the words a bit so they're easier to count.
+We'll basically be counting words here. But computers are dumb. The words `run`, `running`, and `ran` 
+will be counted as differnt words. Through a process called lemmatization, we reduce all 
+words to their _lemma_, such as `run`. This will make it easier to directly compare responses. Additionally 
+we'll perform some basic cleaning like breaking up contractions and removing punctuation.
+
+This process takes a fair amount of time to run, so I've done it ahead of time and saved the results. 
+Here's a snippet:
 """
 st.write(msg)
-
-st.subheader("Stop Words")
-msg = """
-First, we're going to remove very common, meaningless words such as `the` and `in` called *stop words*. Because if not, 
-they will be counted most often and our topics will be dominated by meaningless words.
-
-The library I'm using includes a helpful stop words list. But I'm going to modify it a bit. It includes the word 
-`out` and I noticed that after removing stop words a response, "I am out of money", was turned into, "I am money".
-Slightly different meaning. I've also chosen to remove negative words, like `no`, `not` and `none` from the list. 
-So the list is not exact. ~~Feel free to modify it below.~~ One day if we meet in person I can show you the stop words 
-list and we can edit it together.
-"""
-st.write(msg)
-
-# is_stop = st.text_input("Is this word a stop word?").lower()
-# if is_stop != "":
-#     if NLP.vocab[is_stop].is_stop:
-#         st.write(f"Yes, `{is_stop}` is currently a stop word.")
-#     elif ~NLP.vocab[is_stop].is_stop:
-#         st.write(f"No, `{is_stop}` is not currently a stop word.")
-#     is_stop = ""
-
-# rm_word = st.text_input("Remove Stop Word").lower()
-# if rm_word != "":
-#     NLP.vocab[rm_word].is_stop = False
-#     st.write(f"Removed {rm_word} from list.")
-#     rm_word = ""
-
-# add_word = st.text_input("Add Stop Word").lower()
-# if add_word != "":
-#     NLP.vocab[add_word].is_stop = True
-#     st.write(f"Added {add_word} from list.")
-#     add_word = ""
-
-
-st.subheader("Lemmatization")
-msg = """
-Next, computers are dumb. The words `run`, `running`, and `ran` will be counted as differnt words.
-So the big thing we're going to do here is a process called lemmatization, where we reduce all 
-words to their _lemma_, such as `run`.
-
-These steps together, along with breaking up contractions, removing punctuation, and converting everything, are 
-called "Tokenization". We reduce the text to a list a valid "tokens" we think are useful to analyze.
-"""
-st.write(msg)
-
-
-temp_msg = """
-I wanted to let you play with this part, but the [model](https://spacy.io/) that does the tokenization 
-is like 50 gigs and way to big to host on heroku for no money. There's more AWS stuff I'll need to 
-learn to get that working. So for now, here are the results of the process I ran.
-"""
-st.write(temp_msg)
-
 
 free_response_questions = {
     "holding_back": "If you want to contribute more to the environment, I'd like to ask you -- what do you feel is currently holding you back from taking action to contribute more?",
@@ -126,12 +85,46 @@ what we're counting and how we're counting them.
 """
 st.write(msg)
 
+st.subheader("What Not to Count: Stop Words")
+msg = """
+We'll make sure not to count common, meaningless words such as `the` and `in` called *stop words*. Otherwise, 
+they will be counted most often and our topics will be dominated by meaningless words.
+
+The library I'm using includes a helpful stop words list, but it's not one-size-fits-all. I'm going to modify it 
+a bit. I'm going to remove negative words like, like `no`, `not` and `none` from the list. I'm also going to remove 
+the word `out` from the list, because I noticed that by including it the response, "I am out of money",  turned 
+into, "I am money". Slightly different meaning. If you notice other words that you wish to keep, feel free to 
+modify it below:
+"""
+st.write(msg)
+stop_words = copy(ENGLISH_STOP_WORDS)
+
+is_stop = st.text_input("Is this word a stop word?").lower()
+if is_stop != "":
+    if is_stop in stop_words:
+        st.write(f"Yes, `{is_stop}` is currently a stop word.")
+    else:
+        st.write(f"No, `{is_stop}` is not currently a stop word.")
+    is_stop = ""
+
+rm_word = st.text_input("Remove Stop Word").lower()
+if rm_word != "":
+    stop_words = stop_words.difference([rm_word])
+    st.write(f"Removed {rm_word} from list.")
+    rm_word = ""
+
+add_word = st.text_input("Add Stop Word").lower()
+if add_word != "":
+    stop_words = stop_words.union([add_word])
+    st.write(f"Added {add_word} from list.")
+    add_word = ""
+
 st.subheader("What to Count: N-Grams")
 msg = """
-We can choose to either count each word individually, or we can count word pairings or word triplets. 
+We can choose to either count each word individually, or we can count word pairings. 
 This can be useful, say, if we think it's more important to count the phrase `clean energy` 
 than counting `clean` and `energy` separately. Play with the options below to see how they change the 
-different tokens that will be counted by our vectorizer.
+different *tokens* that will be counted by our vectorizer.
 """
 st.write(msg)
 
@@ -152,19 +145,20 @@ st.write(f"N-Gram Tokens: `{'`, `'.join(ngrams_demo_tokens)}`")
 
 st.subheader("How to Count: Vectorizer")
 msg = """
-Next, we count the words these n-gram tokens. There are two approaches here. The first approach 
-is to simply count how many times each token appears in the response. The second approach is to first 
-count how many times a token appears in a response, and then divide that count by how many times the token 
-appears in _all_ responses. This approach is called _Term Frequency-Inverse Document Frequency (TFIDF)_.
+Next, we count these n-gram tokens. There are two approaches here. The first  
+is to simply count how many times each token appears in the response. The most common words will have 
+the highest count. This is a good approach if we expect one topic to be dominant.
+
+The second approach is to first count how many times a token appears in a response, and then divide 
+that count by how many times the token appears in _all_ responses. This approach is called 
+_Term Frequency-Inverse Document Frequency (TFIDF)_.
 
 TFIDF "squishes" common words and highlights rare words. For example, if a response mentions the word 
 _infrastructure_, how significant that is probably depends on how many other responses mention the word 
 _infrastructure_ as well. If every other response mentions that word, it probably isn't notable. But if 
-only a few others do, than perhaps it's something we should notice.
-
-TFIDF is useful when you're expecting to see a variety of topics in the collection. Simply counting 
-is useful when you're expecting everyone to be writing about the same topic. I'm not sure which to expect 
-here, so we can try both.
+only a few others do, than perhaps it's something we should notice. This will be useful if we instead 
+find a variety of topics among the responses, and want to measure the words that distinguish these topics. 
+We don't yet know what we'll find, so we can try both.
 """
 st.write(msg)
 
