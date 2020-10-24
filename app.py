@@ -1,3 +1,4 @@
+import pickle
 from copy import copy
 from collections import defaultdict
 
@@ -9,13 +10,21 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, EN
 from sklearn.decomposition import LatentDirichletAllocation
 from num2words import num2words
 
-from aws import load_pickled_dataframe, load_pickled_object
+# from aws import get_s3_bucket, load_pickled_dataframe, load_pickled_object
 # from nlp_pipeline import NLP, load_spacy, nlp_pipeline, ngram_demo, retrieve_topic_keywords
 from nlp_pipeline import ngram_demo, retrieve_topic_keywords
 
 
+# Helper Functions
 def rec_dd():
     return defaultdict(rec_dd)
+
+
+def load_pickled_object(filename):
+    obj = pickle.load(open(filename, "rb"))
+    if isinstance(obj, pd.DataFrame):
+        obj.drop(columns=["Unnamed: 0"], inplace=True)
+    return obj
 
 
 st.title("Project Enlighten Survey Analysis")
@@ -47,7 +56,9 @@ translation look? Nothing I can really do here. All hail DeepL.
 """
 st.write(msg)
 
-df = load_pickled_dataframe("attitudes_survey_translation_9_25.pkl")
+# bucket = get_s3_bucket()
+# df = load_pickled_dataframe(bucket, "attitudes_survey_translation_9_25.pkl")
+df = load_pickled_object("attitudes_survey_translation_9_25.pkl")
 st.dataframe(df)
 st.write(f"Summary: {df.shape[0]} responses to {df.shape[1]-1} questions.")
 
@@ -110,13 +121,13 @@ if is_stop != "":
 rm_word = st.text_input("Remove Stop Word").lower()
 if rm_word != "":
     stop_words = stop_words.difference([rm_word])
-    st.write(f"Removed {rm_word} from list.")
+    st.write(f"Removed `{rm_word}` from list.")
     rm_word = ""
 
 add_word = st.text_input("Add Stop Word").lower()
 if add_word != "":
     stop_words = stop_words.union([add_word])
-    st.write(f"Added {add_word} from list.")
+    st.write(f"Added `{add_word}` to the list.")
     add_word = ""
 
 st.subheader("What to Count: N-Grams")

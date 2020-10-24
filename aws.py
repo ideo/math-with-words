@@ -1,14 +1,22 @@
 import pickle
 
+import streamlit as st
 from botocore.exceptions import EndpointConnectionError
+
 
 from bucket_wrapper import get_buckets
 from object_wrapper import get_object
 
 
-def load_pickled_dataframe(obj_key):
+def get_s3_bucket():
+    bucket = [b for b in get_buckets() if b.name == "math-with-words"][0]
+    return bucket
+
+
+@st.cache(hash_funcs={s3.Bucket: hash})
+def load_pickled_dataframe(bucket, obj_key):
     try:
-        bucket =  [b for b in get_buckets() if b.name == "math-with-words"][0]
+        # bucket = [b for b in get_buckets() if b.name == "math-with-words"][0]
         pkl_file = get_object(bucket, obj_key)
         df = pickle.loads(pkl_file)
 
